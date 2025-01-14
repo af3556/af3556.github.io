@@ -5,7 +5,7 @@ categories: [Misc]
 tags: [vaultwarden, tailscale]
 ---
 
-The following is one of the simpler[^simpler] and arguably most-secure ways of setting up a self-hosted [Vaultwarden](https://github.com/dani-garcia/vaultwarden) server using [Tailscale](https://tailscale.com/) for private (and public if desired) connectivity, all in [Docker](https://www.docker.com/get-started/). It assumes you already have somewhere to run Docker containers and a Tailscale network set up for the devices that you'd like to use Vaultwarden. If you can `docker run hello-world` and see at least one machine at [https://login.tailscale.com/admin/machines](https://login.tailscale.com/admin/machines), you're good to go.
+The following is one of the simpler[^simpler] and more-secure ways of setting up a self-hosted [Vaultwarden](https://github.com/dani-garcia/vaultwarden) server, using [Tailscale](https://tailscale.com/) for private (and public if desired) connectivity, all in [Docker](https://www.docker.com/get-started/). It assumes you already have somewhere to run Docker containers and a Tailscale network set up for the devices that you'd like to use Vaultwarden. If you can `docker run hello-world` and see at least one machine at [https://login.tailscale.com/admin/machines](https://login.tailscale.com/admin/machines), you're good to go.
 
 [^simpler]: Really, it's long because it doesn't leave anything out - necessary and sufficient
 
