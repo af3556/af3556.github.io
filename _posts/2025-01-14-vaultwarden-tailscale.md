@@ -20,6 +20,7 @@ Benefits of this approach:
 {: .prompt-tip }
 
 Cons:
+>
 > - requires a Tailscale service
 > - requires all devices to be directly part of the Tailscale network (tailnet) to access the vault server
 >   - [Bitwarden clients will function in read-only mode for up to 90 days when not connected to the server](https://bitwarden.com/blog/configuring-bitwarden-clients-for-offline-access/)
@@ -39,7 +40,7 @@ Vaultwarden runs within a Docker multi-container application (aka compose, Synol
 _Tailscale Funnel - Serve is much the same, only without the Internet and relay server_
 
 > Caveat Infundibulum - Beware of the Funnel
-> 
+>
 > Enabling Funnel for the Vaultwarden containers will allow Bitwarden clients to access the Vaultwarden server without needing to be on your tailnet or even install Tailscale. However the hazard with any service exposed via Funnel is that a vulnerability in the funnelled application could be used by a malicious actor to gain access to your Tailnet. I would not enable Funnel without isolating the host from my local network ([containers are not a security boundary](https://www.google.com/search?q=containers+are+not+a+security+boundary)) _and_ setting up appropriate [Tailscale policies](https://tailscale.com/kb/1393/access-control) to deny access from the node to the rest of the tailnet.
 >
 > If you were tempted to consider "who's going to find my Vaultwarden instance at `vw.tailfe8c.ts.net`" - security by obscurity is never much chop and you certainly can't rely on hiding behind your opaque tailnet's name: every time Tailscale acquires a TLS certificate on your behalf the public certificate infrastructure records the name in the public [Certificate Transparency](https://en.wikipedia.org/wiki/Certificate_Transparency) logs. e.g. [https://crt.sh/?q=pango-lin.ts.net](https://crt.sh/?q=pango-lin.ts.net) shows the node names associated with the Tailscale team's demo tailnet (reporting on the entire `ts.net` crashes `crt.sh`, however I expect there are malicious actors watching the `ts.net` CT logs to pounce on accidental Funnel exposures).
@@ -97,7 +98,7 @@ For Docker hosts other than the Synology, follow the relevant instructions for y
 
 Create a folder hierarchy as follows (for the Synology NAS: via the File Station app):
 
-```
+```text
 /docker/vaultwarden/
 /docker/vaultwarden/data/
 /docker/vaultwarden/tailscale/
@@ -177,7 +178,7 @@ To debug any issues: check the container logs (on Synology: Container > ts-vault
 
 A misconfiguration of the Tailscale environment can cause Tailscale to exit somewhat abruptly. As a preview of the next section: setting `TS_SERVE_CONFIG` to an invalid path will emit the following log entry but then exit with no further fanfare:
 
-```
+```text
 serve proxy: failed to read serve config: open [path]: no such file or directory
 ```
 
@@ -306,8 +307,8 @@ services:
   - the TLS certificate acquisition can take a short time and that can't happen until after the container's started, the tailnet established (including NAT traversal if needed) and the certificate process started, so the initial connection will appear to hang until that's all complete - could be upwards of 60s; review the Tailscale container logs to keep an eye on the process
 
 - after the wait, confirm you:
-  - *can* reach your node via HTTPS from within the tailnet: `https://vaultwarden.your-tailnet.ts.net`, and
-  - *can not* reach it from outside the tailnet (e.g. temporarily turn Tailscale off on your client)
+  - _can_ reach your node via HTTPS from within the tailnet: `https://vaultwarden.your-tailnet.ts.net`, and
+  - _can not_ reach it from outside the tailnet (e.g. temporarily turn Tailscale off on your client)
     - beware browser caching (do a browser hard refresh)
 
 ## Vaultwarden Setup
@@ -330,10 +331,10 @@ FTR, Vaultwarden doesn't accept configuration options as command line arguments.
 >
 > 1. There are myriad ways of setting an environment variable. [Docker supports variables](https://docs.docker.com/compose/how-tos/environment-variables/envvars-precedence/) 'baked-in' to the image at build time (e.g. [`ENV`](https://docs.docker.com/reference/dockerfile/#env)), and/or set in the container at run time (e.g. via compose's `environment`, or [environment file option `env_file`](https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/#use-the-env_file-attribute), or by way of `docker run` arguments). The Docker `env_file` (on the Docker host) is separate to Vaultwarden's `ENV_FILE` (in the Docker container), using both is likely to be very confusing especially if they point to different files. I recommend only using Vaultwarden's `ENV_FILE` for this application.
 >
-> 2. Using the Vaultwarden admin panel (below) to change even *one* option will create a fully-populated config file - this will have the effect of "locking out" any subsequent changes made via the environment. This can be particularly confusing with regard to the `ADMIN_TOKEN`, see the discussion below.
+> 2. Using the Vaultwarden admin panel (below) to change even _one_ option will create a fully-populated config file - this will have the effect of "locking out" any subsequent changes made via the environment. This can be particularly confusing with regard to the `ADMIN_TOKEN`, see the discussion below.
 {: .prompt-warning }
 
-Sometimes the *value* for a given option may need to be read from a file instead of given directly; this can be helpful to avoid committing sensitive data to git and so on. When an option is suffixed with `_FILE` with a value of a file path, Vaultwarden will read that option's value from the given file. See the [Vaultwarden doc for an example](https://github.com/dani-garcia/vaultwarden/wiki/Configuration-overview#loading-individual-values-from-files).
+Sometimes the _value_ for a given option may need to be read from a file instead of given directly; this can be helpful to avoid committing sensitive data to git and so on. When an option is suffixed with `_FILE` with a value of a file path, Vaultwarden will read that option's value from the given file. See the [Vaultwarden doc for an example](https://github.com/dani-garcia/vaultwarden/wiki/Configuration-overview#loading-individual-values-from-files).
 
 The [Vaultwarden documentation recommends using environment variables](https://github.com/dani-garcia/vaultwarden/wiki/Configuration-overview) over using the admin panel (in turn generating a `config.json` file). There are some options that can only be set via environment variables (marked as "read only" in the admin panel).
 
@@ -418,7 +419,7 @@ IP_HEADER=X-Forwarded-For
 The above results in all configuration being defined in a single `.env` file, and that configuration can be relied upon to be applied on every compose 'up'. Any changes made via the `/admin` Settings will be _discarded_ when the containers are restarted. By all means use the `/admin` Settings to make changes, when you're happy with the setup codify it by editing the env file and recreating the container to "make it so". This also allows temporarily enabling some options, e.g. allowing signups, which could automatically revert back to a "safe" setting (`SIGNUPS_ALLOWED=false`) on restart.
 
 > Docker Restart/Stop/Start/ != Down/Up
-> 
+>
 > An alternative to `/dev/null` is to use a location within the container filesystem that is _not_ in a volume, such as `/tmp/config.json` - this will cause the config file to be discarded when the container is _recreated_ but will persist when the container is simply _restarted_. Recall that a container is a read-write runtime layer over the immutable image; this layer is retained after stopping a container (e.g. via `docker compose stop`), and will be reused with a `start`. The container (and other resources) are only discarded on a `docker compose down` (or on a rebuild after the container configuration is changed). That is, to achieve the above goal to discard an errant config file, the application would need to be restarted via `docker compose down && docker compose up`, not `restart`. Unfortunately Synology's Container Manager doesn't  expose the up/down commands, rather only start/stop; they provide "Clean" (rm?) and "Build" commands that delete and recreate and run the image and container; overkill but does the job. `/dev/null` is simpler.
 {: .prompt-info }
 
@@ -429,7 +430,7 @@ Some Vaultwarden options won't be functional for Vaultwarden instance that is is
 | Setting                                                                                              | Value                        | Description                                                                                                                                                                                                         |
 | ---------------------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [ADMIN_TOKEN](https://github.com/dani-garcia/vaultwarden/wiki/Enabling-admin-page)                   | hash                         | as above                                                                                                                                                                                                            |
-| DOMAIN                                                                                               | \<your Tailscale node name\> | domain HTTPS URL, absent any trailing `/`<br>- unfortunately there's no easy way of automatically extracting the Tailscale name (akin to the `TS_CERT_DOMAIN` variable above)                                       |
+| DOMAIN                                                                                               | \<your Tailscale node name\> | domain HTTPS URL, absent any trailing `/` - unfortunately there's no easy way of automatically extracting the Tailscale name (akin to the `TS_CERT_DOMAIN` variable above)                                          |
 | IP_HEADER                                                                                            | X-Forwarded-For              | Tailscale Serve uses X-Forwarded-For ([not that it's documented](https://github.com/search?q=repo%3Atailscale%2Ftailscale+%22X-Forwarded-For%22))                                                                   |
 |                                                                                                      |                              |                                                                                                                                                                                                                     |
 | [SIGNUPS_ALLOWED](https://github.com/dani-garcia/vaultwarden/wiki/Disable-registration-of-new-users) | false                        | optional; see below re. managing users when disabled                                                                                                                                                                |
@@ -456,7 +457,7 @@ INVITATIONS_ALLOWED=false
 ```
 
 > User Identities Look Like Email Addresses
-> 
+>
 > Bitwarden (and thus Vaultwarden) uses email addresses as the user's ID. Vaultwarden doesn't actually _need_ to send email to these "addresses", and any email-like string could be used (i.e. includes an `@`). Despite this freedom it would probably be a good idea to stick with using an address or domain you control in the event you later wanted to enable email for the service. Having said that, Vaultwarden's email addresses can be changed by the user (ref [#110](https://github.com/dani-garcia/vaultwarden/issues/110#issuecomment-412371790)).
 {: .prompt-tip }
 
