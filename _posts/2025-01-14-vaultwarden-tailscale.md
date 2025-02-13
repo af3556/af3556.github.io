@@ -7,7 +7,7 @@ tags: [vaultwarden, tailscale]
 
 The following is one of the simpler[^simpler] and more-secure ways of setting up a self-hosted [Vaultwarden](https://github.com/dani-garcia/vaultwarden) server, using [Tailscale](https://tailscale.com/) for private (and public if desired) connectivity, all in [Docker](https://www.docker.com/get-started/). It assumes you already have somewhere to run Docker containers and a Tailscale network set up for the devices that you'd like to use Vaultwarden. If you can `docker run hello-world` and see at least one machine at [https://login.tailscale.com/admin/machines](https://login.tailscale.com/admin/machines), you're good to go.
 
-[^simpler]: Really, it's long because it doesn't leave anything out - necessary and sufficient
+[^simpler]: Really, it's long because it doesn't leave much out - aiming for necessary and sufficient
 
 Vaultwarden's an unofficial open-source rewrite of the [Bitwarden](https://bitwarden.com/) server. Bitwarden also provide an [official open-source release](https://bitwarden.com/blog/host-your-own-open-source-password-manager/), however it's fairly resource heavy and it's unclear if there are any benefits over Vaultwarden. Why self-host? There are myriad reasons why you might want to run your own services; I won't delve into those here - rather, I presume you're looking for the simplest and "most secure" arrangement for self-hosting Vaultwarden.
 
