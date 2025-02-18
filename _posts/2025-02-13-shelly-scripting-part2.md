@@ -171,7 +171,6 @@ And now the big reveal ([canonical version](https://github.com/af3556/shelly/blo
 threshold for a given time period.
 
 Device: Pro4PM 1.4.4| 679fcca9
-
 */
 
 // configure these as desired:
@@ -326,6 +325,4 @@ function statusHandler(notifyStatus) {
 }
 
 Shelly.addStatusHandler(statusHandler);
-*/
-
 ```
