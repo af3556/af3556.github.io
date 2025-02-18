@@ -7,7 +7,7 @@ tags: [shelly]
 
 [Shelly](https://www.shelly.com/) - nee Allterco - produce a variety of home automation devices. One notable feature is on-device scripting: devices host an embedded Javascript interpreter that opens up all kinds of useful functionality. This post is part one of two that are gp from 'first contact' with a Shelly through to having a script that provides bespoke control of a load.
 
-Part 2 is XXX.
+[Part 2]({% post_url 2025-02-13-shelly-scripting-part2 %}) covers a practical / real-world example.
 
 The nominal audience for these posts is someone who has some programming background, but not in Javascript or [asynchronous programming](https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Async_JS/Introducing). I'd welcome any constructive feedback via [GH Discussions](https://github.com/af3556/af3556.github.io/discussions).
 
