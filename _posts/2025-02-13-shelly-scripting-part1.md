@@ -66,10 +66,12 @@ var switchId = 2;
 var someOtherParameter = 42;
 
 // ... declare functions
+function doSomeSetupWork () { /* ... */ }
 
 //// all this should be moved to a function:
 console.log("Starting ...")
 // ... do some set up things
+doSomeSetupWork();
 // ...
 // ... code to register a handler
 ////
@@ -84,15 +86,21 @@ const CONFIG = {
 }
 
 // ... declare functions
+function _doSomeSetupWork () { /* ... */ }
 
 function init() {
   console.log("Starting ...")
   // ... do some set up things
+  _doSomeSetupWork();
   // ...
   // ... code to register a handler
 }
 init();
 ```
+
+With regard to matters of style: where you can't follow [Mozilla's style guide](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript) (e.g. ES5-constraints), all I can say is "at least be consistent".
+
+In terms of naming functions: a convention I like to use is prefixing functions that are intended to be 'private' (as in, don't form part of any interface to, or invoked by, some outside party) with an underscore `_`. In the above, `init()` is intended to be part of "the interface", whereas `_doSomeSetupWork()` only exists as an implementation detail.
 
 ### Executing and Debugging
 
@@ -100,7 +108,7 @@ Scripts can be created, edited and executed via the web UI, or managed via the A
 
 The web UI is certainly convenient when getting started; when using the web UI the script is stopped and started on each save. The web UI also provides a limited Read-Eval-Print-Loop (REPL)-like 'console' that you can use to execute code quasi-interactively. The 'console' is very clunky - for example it does not echo back the command you entered, and entering a bad command (e.g. creating a syntax error) will stop the script from running.
 
-One important part of writing code is being able to observe the script's operation, and the simplest form of that is a [liberal application of print statements](https://blog.startifact.com/posts/print-debugging/). Shelly provides the ubiquitous JS `console.log` - but where is the 'console' here? Shelly direct output to 'console' to a websocket; the web UI can connect to this ("enable websocket debug"), or you can use separate tools on your computer to view these. I recommend [websocat](https://github.com/vi/websocat).
+One important part of writing code is being able to observe the script's operation, and the simplest form of that is a [liberal application of print statements](https://blog.startifact.com/posts/print-debugging/). Shelly provides the ubiquitous JS `console.log` - but where is the 'console' here? Shelly directs output to 'console' to a websocket; the web UI can connect to this ("enable websocket debug"), or you can use separate tools to view these over the network. I recommend [websocat](https://github.com/vi/websocat).
 
 Another debugging technique is to call individual functions within your script via RPC, see [the example in the doc](https://shelly-api-docs.shelly.cloud/gen2/Scripts/Tutorial#step-7-create-a-function-that-replaces-strings). For example, you might write a debug function that returns script global variable values, and call that remotely.
 
