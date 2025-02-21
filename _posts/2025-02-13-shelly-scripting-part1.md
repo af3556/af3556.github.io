@@ -112,9 +112,43 @@ One important part of writing code is being able to observe the script's operati
 
 Another debugging technique is to call individual functions within your script via RPC, see [the example in the doc](https://shelly-api-docs.shelly.cloud/gen2/Scripts/Tutorial#step-7-create-a-function-that-replaces-strings). For example, you might write a debug function that returns script global variable values, and call that remotely.
 
+#### Log Format
+
+The 'raw' log is a stream of individual JSON objects of the form:
+
+```shell
+% websocat ws://${SHELLY}/debug/log
+{"ts":1740133629.559, "level":2, "data":"<message>", "fd":1}
+```
+
+- `ts`: timestamp
+- `level`: log level? usually 2
+- `fd`: appears to be related to the Shelly process that generated the message (file descriptor?)
+- `data`: log message, see below
+
+The `data` field is of no fixed form: messages generated from Shelly itself are mostly free-form text, for example when starting a script via the web UI: `shos_rpc_inst.c:243     script.start via WS_in 192.168.43.1:52617`. In some cases a stringified JSON object is included, what appears to be a debug message of the form `$filename:$lineno $jsonstring`; refer the `shelly_notification` examples below. These all appear to have a `fd` of 1; script `console.log()` messages are >1. Messages from different scripts have their own distinct `fd`, but it's unclear when/how the `fd` is generated/assigned so it's an unreliable identifier over the medium/long term.
+
+#### `console.log()` message escaping and splitting
+
+Shelly's `console.log()` does not behave identically to more common implementations (e.g. in the browser). One of the differences is that messages generated via `console.log()` are split into separate log messages at the 128 character mark. e.g.
+
+```javascript
+var s = '1234567890';
+console.log(s + s + s + s + s + s + s + s + s + s + s + s + s + s); // 140 chars
+```
+
+results in
+
+```shell
+{"ts":1740136531.466,"level":2,"data":"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678","fd":101}
+{"ts":1740136531.468,"level":2,"data":"901234567890","fd":101}
+```
+
+This can be annoying when dumping largish JSON objects (which will expand even further by escaping special characters). Shelly generated messages are not split.
+
 #### Filtering Logs
 
-The Shelly logs are rather noisy (at least for the Pro4PM):
+The Shelly logs are rather noisy (at least for the Pro4PM); the following is with no scripts running (firmware `1.4.4| 679fcca9`):
 
 ```shell
 % websocat ws://${SHELLY}/debug/log | jq --raw-output --compact-output
@@ -125,18 +159,22 @@ The Shelly logs are rather noisy (at least for the Pro4PM):
 {"ts":1739582460.132,"level":2,"data":"shelly_notification:162 Status change of switch:3: {\"id\":3,\"aenergy\":{\"by_minute\":[0.000,0.000,0.000],\"minute_ts\":1739582460,\"total\":0.000},\"ret_aenergy\":{\"by_minute\":[0.000,0.000,0.000],\"minute_ts\":1739582460,\"total\":0.000}}","fd":1}
 ```
 
-For the Pro4PM a status event is posted every minute with energy data, one for each channel. These are also fed to script `Shelly.addStatusHandler()` handlers. This is sometimes referred to as a "heartbeat", by that measure the Pro4PM has four hearts. As of firmware `1.4.4|679fcca9`, these messages all start with the string "shelly_notification:162" (presumably the function and line number that generates them); this string is likely to change when Shelly update their firmware. Caveat emptor.
+A "heartbeat" event is is posted every minute with energy data, one for each channel (by this measure the Pro4PM has four hearts). The above appear to be debug messages for these "hearbeats"; presumably they were to be removed before release; even if they do hang around over firmware updates the `shelly_notification:162` string is likely to change when Shelly update their firmware. It would be unreliable to depend on these messages. Fortunately these events are also sent to script `Shelly.addStatusHandler()` handlers, so it's easy to log your own as needed (well, except for the 128-character message splitting, as above).
 
-Further, the level, fd and so on are not generally useful. [`jq`](https://jqlang.org/) is very helpful to filter these out and show only the abbreviated timestamp and `.data` payload:
+Various other messages are emitted when the Shelly is going about its business:
 
 ```shell
-% websocat ws://${SHELLY}/debug/log | jq --raw-output 'select(.data | startswith("shelly_notification:") | not) | [(.ts | strftime("%M:%S")), .data]| @tsv'
-32:07   shelly_debug.cpp:236    Streaming logs to 192.168.118.215:51445
-32:14   shos_time.c:54          Setting time from SNTP (1739583134.383 delta -0.050)
-32:14   shelly_sys.cpp:217      Time set to 316920.585647 from 1
+{"ts":1740133629.559, "level":2, "data":"shos_rpc_inst.c:243     switch.toggle via WS_in 192.168.43.1:52144", "fd":1}
+{"ts":1740133629.594, "level":2, "data":"shelly_notification:162 Status change of switch:3: {\"id\":3,\"output\":true,\"source\":\"WS_in\"}", "fd":1}
 ```
 
-On the jq expression `select(.data | startswith("shelly_notification:") | not) | [(.ts | strftime("%M:%S")), .data]| @tsv`: removes (`not`) any records where `data` starts with the string "shelly_notification:", and then selects only the formatted timestamp and data fields, emitting them as tab-separated strings. jq is definitely one of those tools that is easier to read than write.
+[`jq`](https://jqlang.org/) is very helpful to filter out the Shelly cruft (`fd=1`) and show only the abbreviated timestamp and `.data` payload for script messages:
+
+```shell
+% websocat ws://${SHELLY}/debug/log | jq --raw-output 'select(.fd != 1) | [(.ts | strftime("%M:%S")), .data]| @tsv'
+```
+
+On the jq expression `select(.fd != 1) | [(.ts | strftime("%M:%S")), .data]| @tsv`: selects only records that are not from Shelly itself (match `.fd != 1`), then selects only the formatted timestamp and data fields, emitting them as tab-separated strings. jq is definitely one of those tools that is easier to read than write.
 
 To achieve a similar filter in a script handler you have to ignore any messages you're not interested in, e.g. in this example ignore messages that don't report a `delta.apower`:
 
