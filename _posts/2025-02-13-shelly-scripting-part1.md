@@ -128,7 +128,7 @@ The 'raw' log is a stream of individual JSON objects of the form:
 
 The `data` field is of no fixed form: messages generated from Shelly itself are mostly free-form text, for example when starting a script via the web UI: `shos_rpc_inst.c:243     script.start via WS_in 192.168.43.1:52617`. In some cases a stringified JSON object is included, what appears to be a debug message of the form `$filename:$lineno $jsonstring`; refer the `shelly_notification` examples below. These all appear to have a `fd` of 1; script `console.log()` messages are >1. Messages from different scripts have their own distinct `fd`, but it's unclear when/how the `fd` is generated/assigned so it's an unreliable identifier over the medium/long term.
 
-#### `console.log()` message escaping and splitting
+#### `console.log()` Message Escaping and Splitting
 
 Shelly's `console.log()` does not behave identically to more common implementations (e.g. in the browser). One of the differences is that messages generated via `console.log()` are split into separate log messages at the 128 character mark. e.g.
 
@@ -145,6 +145,14 @@ results in
 ```
 
 This can be annoying when dumping largish JSON objects (which will expand even further by escaping special characters). Shelly generated messages are not split.
+
+#### `console.log()` Rate Limiting
+
+Shelly appears to implement the log as a queue: calling `console.log()` adds a message to the queue, and some internal process shifts them off and writes them over the network. This queue has a finite - and apparently fairly modest - size, for example on a Pro4PM running 1.4.4, it appears to be only 7 messages: e.g. `for (var i = 0; i < 20; i++) console.log(i);`) will only emit `13` through `19`. This is problematic primarily as it occurs without warning: unless you're paying _very_ close attention to how frequently you're calling `console.log()` you won't notice when "random" messages just don't appear. Worst of all, this isn't actually likely to be random: the periodic nature of most Shelly scripts means the `console.log()` timing is going to be somewhat consistent. So only _certain_ messages will somewhat reliably disappear. Madness!
+
+The only solution here - apart from Shelly raising a warning when you hit the rate limit - is to rate limit how frequently you call `console.log()`. See the implementation at the end of this post.
+
+In addition to this rate limit (or perhaps due to the internal splitting of messages into 128-character segments) there also appears to be a size constraint as well. With the 'DIY queue' implementation below, with a 100ms timer on a Pro4PM running 1.4.4, messages up to ~960 characters appear to be reliable.
 
 #### Filtering Logs
 
@@ -329,17 +337,36 @@ A couple of iterations later, and we have this:
 // - if current second is <30, increment; otherwise decrement
 
 var CONFIG = {
-  log: true,          // enable/disable informational/debug log messages
   timers: [
       { period: 6 },  // use defaults for increment and initialCount
       { period: 10, increment: 2, initialCount: 100 }
-  ]
+  ],
+  log: true           // enable/disable informational/debug log messages
 }
 
+// rate limit console.log messages to the given interval
+var _logQueue = {
+  queue: [],      // queued messages
+  maxSize: 20,    // limit the size of the queue
+  interval: 100   // ms
+}
+
+// dequeue one message; intended to be called via a Timer
+function _logWrite() {
+  // Shelly doesn't do array.shift (!), splice instead
+  if (_logQueue.queue.length > 0) {
+    // include a 'tag' in the log messages for easier filtering
+    console.log('[thecount]', _logQueue.queue.splice(0, 1)[0]);
+  }
+}
 
 function _log() {
-  // include a tag in the log messages for easier filtering
-  if (CONFIG.log) console.log('[thecount]', arguments.join(' '));
+  if (!CONFIG.log) return;
+  if (_logQueue.queue.length < _logQueue.maxSize) {
+    _logQueue.queue.push(arguments.join(' '));
+  } else {
+    console.log('_log: overflow!!'); // you may or may not actually get to see this
+  }
 }
 
 // factory function to create timer objects (ES5: no class)
@@ -378,6 +405,11 @@ function startTimer(timerObject) {
 }
 
 function init() {
+  if (CONFIG.log) {
+    // set up the log timer; this burns a relatively precious resource but
+    // could easily be moved to an existing timer callback
+    Timer.set(_logQueue.interval, true, _logWrite);
+  }
   _log("init");
   for (const i in CONFIG.timers) {  // for...in iterates over indices of an array
     var t = CONFIG.timers[i];

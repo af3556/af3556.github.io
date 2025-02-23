@@ -201,6 +201,11 @@ var switchState = {
 
 var currentTime = 0;  // not every notification has a timestamp, have to DIY
 
+var _logQueue = {
+  buffer: [],
+  maxSize: 20,
+  interval: 100
+}
 
 function _defined(v) {
   return v !== undefined && v !== null;
@@ -221,10 +226,22 @@ function _get(obj, path) {
   return current;
 }
 
+// dequeue one message; intended to be called via a Timer
+function _logWrite() {
+  // Shelly doesn't do array.shift (!), splice instead
+  if (_logQueue.buffer.length > 0) {
+    // include a 'tag' in the log messages for easier filtering
+    console.log('[thecount]', _logQueue.buffer.splice(0, 1)[0]);
+  }
+}
+
 function _log() {
-  // Shelly doesn't support the spread operator `...`
-  // workaround: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments
-  if (CONFIG.log) console.log('[underpower-off]', arguments.join(' '));
+  if (!CONFIG.log) return;
+  if (_logQueue.buffer.length < _logQueue.maxSize) {
+    _logQueue.buffer.push(arguments.join(' '));
+  } else {
+    console.log('_log: overflow!!'); // you may or may not actually get to see this
+  }
 }
 
 function _callback(result, errorCode, errorMessage) {
@@ -324,5 +341,14 @@ function statusHandler(notifyStatus) {
   _log(JSON.stringify(switchState));
 }
 
-Shelly.addStatusHandler(statusHandler);
+function init() {
+  if (CONFIG.log) {
+    // set up the log timer; this burns a relatively precious resource but
+    // could easily be moved to an existing timer callback
+    Timer.set(_logQueue.interval, true, _logWrite);
+  }
+  Shelly.addStatusHandler(statusHandler);
+}
+
+init();
 ```
