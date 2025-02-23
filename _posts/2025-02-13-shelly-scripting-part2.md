@@ -201,10 +201,29 @@ var switchState = {
 
 var currentTime = 0;  // not every notification has a timestamp, have to DIY
 
+// rate limit console.log messages to the given interval
 var _logQueue = {
-  buffer: [],
-  maxSize: 20,
-  interval: 100
+  queue: [],      // queued messages
+  maxSize: 20,    // limit the size of the queue
+  interval: 100   // interval, ms
+}
+
+// dequeue one message; intended to be called via a Timer
+function _logWrite() {
+  // Shelly doesn't do array.shift (!), splice instead
+  if (_logQueue.queue.length > 0) {
+    // include a 'tag' in the log messages for easier filtering
+    console.log('[thecount]', _logQueue.queue.splice(0, 1)[0]);
+  }
+}
+
+function _log() {
+  if (!CONFIG.log) return;
+  if (_logQueue.queue.length < _logQueue.maxSize) {
+    _logQueue.queue.push(arguments.join(' '));
+  } else {
+    console.log('_log: overflow!!'); // you may or may not actually get to see this
+  }
 }
 
 function _defined(v) {
@@ -224,24 +243,6 @@ function _get(obj, path) {
     }
   }
   return current;
-}
-
-// dequeue one message; intended to be called via a Timer
-function _logWrite() {
-  // Shelly doesn't do array.shift (!), splice instead
-  if (_logQueue.buffer.length > 0) {
-    // include a 'tag' in the log messages for easier filtering
-    console.log('[thecount]', _logQueue.buffer.splice(0, 1)[0]);
-  }
-}
-
-function _log() {
-  if (!CONFIG.log) return;
-  if (_logQueue.buffer.length < _logQueue.maxSize) {
-    _logQueue.buffer.push(arguments.join(' '));
-  } else {
-    console.log('_log: overflow!!'); // you may or may not actually get to see this
-  }
 }
 
 function _callback(result, errorCode, errorMessage) {
