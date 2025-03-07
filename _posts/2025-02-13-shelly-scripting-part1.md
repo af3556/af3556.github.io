@@ -281,7 +281,7 @@ Much better - now in sync as expected (i.e. the `unixtime%60` reported in `getSt
 
 ### Take 3 - Asynchronous -> Synchronous
 
-The 'take 2' script chains two asynchronous calls: the anonymous function callback from `Timer.set()` does nothing else but fire off an RPC `Shelly.call('Sys.GetStatus')`, in turn that at returns the device `Status` to `getStatusCallback()` which does "the work". This isn't a problem per se - and indeed the `Timer` call is well and good (i.e. no [busy waits](https://en.wikipedia.org/wiki/Busy_waiting)!), though as it happens the second asynchronous call is more simply implemented as a synchronous call, i.e. replace the `Sys.GetStatus` RPC call + callback with a straight-up `Shelly.getComponentStatus('Sys')`. Whilst we're there, we should also handle the situation where the clock [may not yet be synced](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Sys#status).
+The 'take 2' script chains two asynchronous calls: the anonymous function callback from `Timer.set()` does nothing else but fire off an RPC `Shelly.call('Sys.GetStatus')`, in turn that at returns the device `Status` to `getStatusCallback()` which does "the work". This isn't a problem per se - and indeed the `Timer` call is well and good (i.e. no [busy waits](https://en.wikipedia.org/wiki/Busy_waiting)!), though as it happens the second asynchronous call is more simply implemented as a synchronous call, i.e. replace the `Sys.GetStatus` RPC call + callback with a straight-up `Shelly.getComponentStatus('Sys')`. Whilst we're there, we should also handle the situation where the clock [may not yet be synced](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Sys#status). Note that if you didn't care about alignment with wall clock time the `uptime` field would be a better option as that doesn't rely on NTP and is always valid.
 
 Rather than try and dump all that in an anonymous function, we'll put this code in a named function and pass that to the `Timer.set()` callback.
 
@@ -294,6 +294,7 @@ function incrementTimerCallback() {
   // be a number > 0 (i.e. a JS "true" value); anything else is an error
   if (!unixtime) {
     // possibly because the clock hasn't sync'd, or other reasons
+    // consider falling back to uptime
     console.log('WARN failed to get unixtime', unixtime);
     return;
   }
