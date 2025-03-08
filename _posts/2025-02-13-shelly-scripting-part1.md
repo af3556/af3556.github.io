@@ -102,11 +102,63 @@ With regard to matters of style: where you can't follow [Mozilla's style guide](
 
 In terms of naming functions: a convention I like to use is prefixing functions that are intended to be 'private' (as in, don't form part of any interface to, or invoked by, some outside party) with an underscore `_`. In the above, `init()` is intended to be part of "the interface", whereas `_doSomeSetupWork()` only exists as an implementation detail.
 
+## Practical Matters
+
+### Connecting to the Shelly
+
+All (?) Shelly devices have Bluetooth and WiFi, and some have wired Ethernet. When connecting to the network Shelly devices will advertise a unique hostname of the form `shelly` + `$MODEL` + `-` + `$DEVICE_ID` e.g. `shellypro4pm-08F9E123E123`. In turn the device ID appears to be the lowest MAC address on the device (a device with WiFi + Ethernet will have separate MAC addresses for each). The device ID is shown in the device's Settings > Device Info, or if you're handy with network tools you can find it via you network's DHCP server, a managed switch's device table, or plain ol' ARP.
+
+In addition to DHCP Shelly supports [mDNS](https://en.wikipedia.org/wiki/Multicast_DNS) - aka ZeroConf/Bonjour/Avahi. From most modern desktops you should be able to connect to the device as `shelly$MODEL-$DEVICEID.local.`, even if there is no local router - e.g. a direct Ethernet cable from a laptop to a Shelly device.
+
+Once you've worked out the device's name and can connect to it via a web browser, you're good to start scripting 😀.
+
+### Helpful Utilities
+
+Per the [Shelly documentation](https://shelly-api-docs.shelly.cloud/gen2/General/RPCChannels#useful-tools), [`curl`](https://curl.se/), is an excellent - essential even! - utility for sending HTTP requests. If you haven't used curl before you might want to [figure that out before proceeding](https://developer.ibm.com/articles/what-is-curl-command/).
+
+You'll also want [websocat](https://github.com/vi/websocat) so as to be able to view the Shelly logs.
+
+Another helpful tool is [`jq`](https://jqlang.org/), very useful for processing JSON data. `jq` can be a little challenging to use but you likely may not need much more than the simplest expressions, such as `jq .` that formats JSON input into a "pretty printed" form.
+
+> Tip: writing `jq` expressions can be painful. Fortunately it's the kind of thing that machine learning excels at: you may have success asking your favourite "assistant" something like: "given the JSON data below, how can I use jq to print \<the part(s) you want\>" and then pasting in the raw JSON from the Shelly device.
+{: .prompt-tip }
+
+Some examples of using `curl` and `jq` to:
+
+- retrieve a Shelly device's info (RPC name [`Shelly.GetDeviceInfo`](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Shelly#shellygetdeviceinfo)); the 'raw JSON' output is all one one line
+- do the same again but pipe the JSON data to `jq` to format it nicely
+- again, but just print the model
+- call a different RPC [`Shelly.GetStatus`](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Shelly#shellygetstatus) and use `jq` to extract just the system uptime
+
+```shell
+$ SHELLY=shellypro4pm-08F9E123E123.local.
+$ curl "http://${SHELLY}/rpc/Shelly.GetDeviceInfo"       
+{"name":"Pump House","id":"shellypro4pm-08f9e123e123","mac":"08F9E123E123","slot":1,"model":"SPSW-104PE16EU","gen":2,"fw_id":"20241011-114451/1.4.4-g6d2a586","ver":"1.4.4","app":"Pro4PM","auth_en":false,"auth_domain":null}%     
+$ curl "http://${SHELLY}/rpc/Shelly.GetDeviceInfo" | jq .
+{
+  "name": "Pump House",
+  "id": "shellypro4pm-08f9e123e123",
+  "mac": "08F9E123E123",
+  "slot": 1,
+  "model": "SPSW-104PE16EU",
+  "gen": 2,
+  "fw_id": "20241011-114451/1.4.4-g6d2a586",
+  "ver": "1.4.4",
+  "app": "Pro4PM",
+  "auth_en": false,
+  "auth_domain": null
+}
+% curl "http://${SHELLY}/rpc/Shelly.GetDeviceInfo" | jq .model
+"SPSW-104PE16EU"
+$ curl "http://${SHELLY}/rpc/Shelly.GetStatus" | jq .sys.uptime
+2556
+```
+
 ### Executing and Debugging
 
-Scripts can be created, edited and executed via the web UI, or managed via the API - though strictly speaking, you can only manage via the API, the web UI just uses the API in a more convenient fashion. One hiccup with the API is that it can only accept a limited amount of data per RPC call; Shelly don't actually define this number but they do provide [a Python script](https://github.com/ALLTERCO/shelly-script-examples/blob/main/tools/put_script.py) that 'chunks' the upload into a maximum of 1024 octets at a time.
+Scripts can be created, edited and executed via the web UI, or managed via the API - though strictly speaking, you can only manage a device via the API: the web UI just uses the API in a more convenient fashion. One hiccup with the API is that it can only accept a limited amount of data per RPC call; Shelly don't actually define this number but they do provide [a Python script](https://github.com/ALLTERCO/shelly-script-examples/blob/main/tools/put_script.py) that 'chunks' the upload into a maximum of 1024 octets at a time. I find it simplest to just copy works in progress from a code editor to the Shelly web UI script form and then hit the save button; it's clunky but works. If this was a day job you'd certainly want a more automated option.
 
-The web UI is certainly convenient when getting started; when using the web UI the script is stopped and started on each save. The web UI also provides a limited Read-Eval-Print-Loop (REPL)-like 'console' that you can use to execute code quasi-interactively. The 'console' is very clunky - for example it does not echo back the command you entered, and entering a bad command (e.g. creating a syntax error) will stop the script from running.
+The web UI is certainly convenient when getting started; when using the web UI the script is stopped and started each time new script content is saved. The web UI also provides a limited Read-Eval-Print-Loop (REPL)-like 'console' that you can use to execute code quasi-interactively. The 'console' is very clunky - for example it does not echo back the command you entered, and entering a bad command (e.g. creating a syntax error) will kill the script.
 
 One important part of writing code is being able to observe the script's operation, and the simplest form of that is a [liberal application of print statements](https://blog.startifact.com/posts/print-debugging/). Shelly provides the ubiquitous JS `console.log` - but where is the 'console' here? Shelly directs output to 'console' to a websocket; the web UI can connect to this ("enable websocket debug"), or you can use separate tools to view these over the network. I recommend [websocat](https://github.com/vi/websocat).
 
