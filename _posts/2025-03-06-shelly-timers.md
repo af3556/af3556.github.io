@@ -14,8 +14,8 @@ This post follows on from [the intro posts on Shelly scripting]({% post_url 2025
 
 Shelly provides a [Timer object](https://shelly-api-docs.shelly.cloud/gen2/Scripts/ShellyScriptLanguageFeatures#timer) that will schedule a given callback to be called after a given delay, either once or repeatedly, with a granularity on the delay or interval on the order of a few milliseconds. It can also pass along some data to the callback. As of 1.0 of the [Script Language](https://shelly-api-docs.shelly.cloud/gen2/Scripts/ShellyScriptLanguageFeatures/), a script can have a [maximum of 5 timers](https://shelly-api-docs.shelly.cloud/gen2/Scripts/ShellyScriptLanguageFeatures/#resource-limits).
 
-Aside: the Script "language version" appears to be managed by Shelly independently of firmware releases and/or devices; some functionality mentioned in the language documentation is not available with firmware 1.4.4 (and/or some devices). The doc tags _some_ of these API calls as "Since version 1.5.0" but many unavailable classes/methods are not labelled. Attempting to use these, e.g. referencing `Timer.getInfo()`, results in a runtime error. It would be helpful if Shelly properly documented the API for each firmware release.
-
+> Aside: the Shelly Script "language version" appears to be managed by Shelly independently of firmware releases and/or devices; however the availability of functionality mentioned in the language documentation varies with firmware (and/or devices). The doc tags _some_ of the API calls with a minimum firmware version (e.g. "Since version 1.5.0") but most are not labelled, including a number of classes/methods that are unavailable in 1.4.4. Attempting to use these - e.g. referencing `Timer.getInfo()` - results in a runtime error. It would be helpful if Shelly properly documented the API for each firmware release.
+{: .prompt-tip }
 > Regarding webhooks: Shelly firmware 1.5 appears to have introduced a [`Webhook`](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Webhook/) service that allows a script to fire off webhook calls when certain events occur and certain conditions are true. This looks promising (I don't yet have a 1.5 device) but it also has some limitations: seems you can't ask `Webhook` to send an ad-hoc message, nor can you tell if it succeeded or failed, nor can you control the HTTP request type or set headers (e.g. for authentication). Depending on your application this may or may not be a problem for you. Regardless, rate limiting notifications serves as a good example for Timers, so let's carry on.
 {: .prompt-info }
 
@@ -42,11 +42,11 @@ startTimer();
 Output ([prefix is a timestamp MM:SS]({% post_url 2025-02-13-shelly-scripting-part1 %}#filtering-logs)):
 
 ```text
-27:13	startTimer 1
-27:14	_timerCallback important data
-27:15	_timerCallback important data
-27:16	_timerCallback important data
-27:17	_timerCallback important data
+27:13 startTimer 1
+27:14 _timerCallback important data
+27:15 _timerCallback important data
+27:16 _timerCallback important data
+27:17 _timerCallback important data
 ```
 
 Notes:
@@ -64,11 +64,11 @@ for (var n=1; n < 6; n++) { // max 5 timers
 }
 
 /* output:
-29:31	-32
-29:31	-8
-29:31	-2
-29:35	4
-29:47	16
+29:31 -32
+29:31 -8
+29:31 -2
+29:35 4
+29:47 16
 */
 ```
 
@@ -103,14 +103,14 @@ startTimer();
 Output (prefix is a timestamp MM:SS):
 
 ```text
-41:56	n=126(126) dtavg=7.93650793650ms
-41:57	n=255(129) dtavg=7.84313725490ms
-41:58	n=385(130) dtavg=7.79220779220ms
-41:59	n=513(128) dtavg=7.79727095516ms
-42:00	n=614(101) dtavg=8.14332247557ms
-42:01	n=733(119) dtavg=8.18553888130ms
-42:02	n=852(119) dtavg=8.21596244131ms
-42:03	n=971(119) dtavg=8.23892893923ms
+41:56 n=126(126) dtavg=7.93650793650ms
+41:57 n=255(129) dtavg=7.84313725490ms
+41:58 n=385(130) dtavg=7.79220779220ms
+41:59 n=513(128) dtavg=7.79727095516ms
+42:00 n=614(101) dtavg=8.14332247557ms
+42:01 n=733(119) dtavg=8.18553888130ms
+42:02 n=852(119) dtavg=8.21596244131ms
+42:03 n=971(119) dtavg=8.23892893923ms
 ```
 
 ## DIY Repeating Timers
@@ -136,15 +136,15 @@ startTimer();
 Output (prefix is a timestamp MM:SS):
 
 ```text
-56:26	startTimer 1
-56:27	_timerCallback 2
-56:28	_timerCallback 3
-56:29	_timerCallback 4
-56:30	_timerCallback 5
-56:32	_timerCallback 6
-56:34	_timerCallback 7
-56:36	_timerCallback 8
-56:38	_timerCallback 9
+56:26 startTimer 1
+56:27 _timerCallback 2
+56:28 _timerCallback 3
+56:29 _timerCallback 4
+56:30 _timerCallback 5
+56:32 _timerCallback 6
+56:34 _timerCallback 7
+56:36 _timerCallback 8
+56:38 _timerCallback 9
 ```
 
 This mechanism is used below in the second version of the notification rate limiting script, where the Timer is tweaked to give the minimal delay between messages and stopped altogether when not needed.
@@ -154,6 +154,9 @@ This mechanism is used below in the second version of the notification rate limi
 Let's move on to a non-trivial example: the goal is to post a notification to a HTTP server (a "webhook"), but to make sure that we don't flood the server with too many messages at once. In addition we'll remove any duplicate messages.
 
 The queuing logic adds a bit of extra code but it's well worth it to not get spammed by a runaway script ;-).
+
+> In general it is preferable for processing of notifications (de-duplication, rate-limiting, prioritisation, etc) to be handled by the notification service. That approach avoids having to implement this processing at each source and allows reuse of the same pipeline for all notification sources. However not all notification services support such a thing, [ntfy.sh](https://ntfy.sh/) doesn't.
+{: .prompt-info }
 
 ```javascript
 /* Shelly script to demonstrate using Timers for rate limited notifications to
@@ -269,7 +272,7 @@ Let's add the bells and whistles: the version below removes the single periodic 
 are scheduled "on-demand". The "demand" is whenever a notification message is queued up, the writer will be pinged to see if it's able to be sent immediately.
 If the new message is too close on the tail of the last message, a timer is set to send it later. When no notifications are pending, there are no timers running.
 
-> When developing/debugging it's tempting to sprinkle print (`console.log()`) statements everywhere; that can backfire on Shelly due to the platform [rate limiting the number of log messages]({% post_url 2025-02-13-shelly-scripting-part1 %}#consolelog-rate-limiting) and _silently_ discarding any excess. Ironically the script we're working on here implements exactly the same behaviour - with the notable exception that queue overflows are logged ;-)
+> When developing/debugging it's tempting to sprinkle print (`console.log()`) statements everywhere; that can backfire on Shelly due to the platform [rate limiting the number of log messages]({% post_url 2025-02-13-shelly-scripting-part1 %}#consolelog-rate-limiting) (due to finite message queue size) and _silently_ discarding any excess. Ironically the script we're working on here is implementing exactly the same behaviour albeit for different reasons - with the notable exception that queue overflows are logged ;-)
 >
 > See [the Shelly Scripting intro post]({% post_url 2025-02-13-shelly-scripting-part1 %}#take-4---going-to-town) on how to use a periodic queue to avoid the Shelly `console.log()` rate limiting and ensure you get all your log messages - or at least get a warning when they're dropped. That code is pretty much the same as the above fixed period rate limiting but with a low timer interval, unlike webhook notifications that have a high interval.
 {: .prompt-warning }
