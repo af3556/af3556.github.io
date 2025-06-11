@@ -11,13 +11,13 @@ Probably the most involved approach involves enrolling the device in a home auto
 
 Perhaps the simplest approach is to ping the device - this will tell you whether it's on the network. However that doesn't mean it's working - it could be zombified (partially crashed/locked up) or be restarting every 5 minutes; a ping can't tell you much.
 
-A better approach is to poll the Shelly API [`http://${SHELLY}/rpc/Shelly.GetStatus`](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Shelly/) to fetch important operational attributes such as uptime and device temperature.
+A better approach is to poll the Shelly API [`http://${SHELLY}/rpc/Shelly.GetStatus`](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Shelly/#shellygetstatus) to fetch important operational attributes such as uptime and device temperature. The uptime units are undocumented but appear to be in seconds.
 
 ## A Shell Implementation
 
 The BASH shell script below is intended to be called from cron on a Linux box. The latest version of this script is at [https://github.com/af3556/shelly/blob/main/snippets/pingshelly.sh](https://github.com/af3556/shelly/blob/main/snippets/pingshelly.sh).
 
-Walking through the script design: at the core is a command pipeline that uses [`curl`](https://www.google.com/search?q=curl+getting+started) to fetch the Shelly device's `GetStatus` and passes that to [`jq`](https://jqlang.org/tutorial/) to extract the uptime and temperature from that as tab-separated values, in turn these are read into shell variables. If either field is out of order a notification is sent via [ntfy.sh](https://ntfy.sh/). Empty values imply the `curl` called failed (device may be down?), and if an uptime that is less than last time we checked indicates the device has restarted.
+Walking through the script design: at the core is a command pipeline that uses [`curl`](https://www.google.com/search?q=curl+getting+started) to fetch the Shelly device's `GetStatus` and passes that to [`jq`](https://jqlang.org/tutorial/) to extract the uptime and temperature from that as tab-separated values, which are read into shell variables. If either field is out of order a notification is sent via [ntfy.sh](https://ntfy.sh/). Empty values imply the `curl` called failed (e.g. the network or device is down), and if the reported uptime is lower than last time we checked, the device has restarted (or the uptime value has wrapped around, the data type is undocumented though presumably it's 32-bit unsigned so that wrap around will occur after 136 years of uninterrupted operation).
 
 The rest of the script is BASH boilerplate, and frankly is probably a good example of why a Python implementation might be simpler ;-) (sunk cost fallacy FTW). Some notes:
 
