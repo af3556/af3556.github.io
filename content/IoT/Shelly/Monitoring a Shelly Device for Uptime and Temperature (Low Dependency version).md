@@ -14,10 +14,10 @@ Next step up from ping is to poll the Shelly API [`http://${SHELLY}/rpc/Shelly.G
 
 ## A Shell Implementation
 
-The BASH shell script presented here is intended to be called from cron on a Linux box. The latest version of this script is at [https://github.com/af3556/shelly/blob/main/snippets/pingshelly.sh](https://github.com/af3556/shelly/blob/main/snippets/pingshelly.sh), please open that up in another window while we walk through the design.
+The BASH shell script presented here is intended to be called from cron on a Linux box. The latest version of this script is at [https://github.com/af3556/shelly/blob/main/snippets/pingshelly.sh](https://github.com/af3556/shelly/blob/main/snippets/pingshelly.sh), open that up in another window while we walk through the design.
 
 > [!info] Python/etc
-> The implementation could as easily be in Python or some other language: six of one, half a dozen of the other. For giggles I [wrote a Python version](https://github.com/af3556/shelly/blob/main/snippets/pingshelly.py), imnsho the BASH version is easier to grok.
+> The implementation could as easily be in Python or some other language: six of one, half a dozen of the other. For giggles I asked Gemini to [write a Python version of the shell script](https://github.com/af3556/shelly/blob/main/snippets/pingshelly.py), even after a fair bit of critiquing and direct intervention imnsho the BASH version is easier to grok for someone comfortable in both shell and Python.
 
 At the script's core is a command pipeline, within a function, that uses [`curl`](https://www.google.com/search?q=curl+getting+started) to fetch the Shelly device's `GetStatus` and passes that JSON to [`jq`](https://jqlang.org/tutorial/) to extract the uptime and temperature as tab-separated values. These are read into shell variables. If either field is out of order an error is raised. The function returns at least two lines: the uptime and temperature, and on error subsequent lines are error messages.
 
