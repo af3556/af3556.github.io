@@ -114,10 +114,10 @@ Per the [Shelly documentation](https://shelly-api-docs.shelly.cloud/gen2/General
 
 You'll also want [websocat](https://github.com/vi/websocat) so as to be able to view the Shelly logs.
 
-Another helpful tool is [`jq`](https://jqlang.org/), very useful for processing JSON data. `jq` can be a little challenging to use but you likely may not need much more than the simplest expressions, such as `jq .` that formats JSON input into a "pretty printed" form.
+Another helpful tool is [`jq`](https://jqlang.org/), it's very useful for processing JSON data. `jq` can be a little challenging to use but you likely may not need much more than the simplest expressions, such as `jq .` that formats JSON input into a "pretty printed" form.
 
-> Tip: writing `jq` expressions can be painful. Fortunately it's the kind of thing that machine learning excels at: you may have success asking your favourite "assistant" something like: "given the JSON data below, how can I use jq to print \<the part(s) you want\>" and then pasting in the raw JSON from the Shelly device.
-{: .prompt-tip }
+> [!tip] `jq` + LLMs
+> Writing `jq` expressions can be painful. Fortunately it's the kind of thing that machine learning excels at: you may have success asking your favourite "assistant" something like: "given the JSON data below, how can I use jq to print \<the part(s) you want\>" and then appending the raw JSON from the Shelly device.
 
 Some examples of using `curl` and `jq` to:
 
