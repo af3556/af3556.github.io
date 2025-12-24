@@ -3,6 +3,8 @@ date: 2020-10-13
 tags:
   - DHCP
   - TFTP
+aliases:
+  - posts/dhcp+tftp
 ---
 
 Let's take a walk down memory lane...

@@ -2,6 +2,8 @@
 date: 2025-03-01
 tags:
   - shelly
+aliases:
+  - posts/shelly-misc
 ---
 
 This post captures a bunch of "miscellaneous" observations on the Shelly home automation devices.

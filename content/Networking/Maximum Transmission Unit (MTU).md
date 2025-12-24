@@ -3,6 +3,8 @@ date: 2023-08-03
 tags:
   - MTU
   - PMTU
+aliases:
+  - posts/mtu
 ---
 
 The Maximum Transmission Unit (MTU) is the size of the largest Protocol Data Unit (PDU) (TCP segment or UDP datagram) can be communicated in a single network layer transaction. It's the largest chunk of data that will fit in one packet between you and the server.

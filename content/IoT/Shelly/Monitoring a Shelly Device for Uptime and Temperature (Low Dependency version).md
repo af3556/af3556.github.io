@@ -2,6 +2,8 @@
 date: 2025-04-13
 tags:
   - shelly
+aliases:
+  - posts/shelly-crude-monitoring
 ---
 
 A simple question of "how can I monitor whether a Shelly device is up and running?", has a multitude of answers, some simple yet flawed, others less simple and less flawed.
