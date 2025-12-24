@@ -2,8 +2,6 @@
 date: 2025-03-06
 tags:
   - shelly
-aliases:
-  - posts/shelly-timers
 ---
 
 This post follows on from [[1 Shelly Scripting - Intro]] and takes a look at timers. Timers are one of the two primary ways any Shelly script can Get Stuff Done (the other being via event/notification handlers). Two practical examples are considered:

@@ -2,8 +2,6 @@
 date: 2025-02-13
 tags:
   - shelly
-aliases:
-  - posts/shelly-scripting-part2
 ---
 
 This post is about creating a Shelly script to implement a mechanism to turn off an output of a [Shelly Pro4PM](https://kb.shelly.cloud/knowledge-base/shelly-pro-4pm-v2) when the load power draw drops below a given threshold for a certain time. One potential use case could be a "safety interlock" for a machine where it is desired to turn off the outlet once the machine itself has been turned off / stopped, i.e. so that it can't start up again without instructing the Shelly switch to re-enable the output.

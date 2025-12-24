@@ -3,8 +3,6 @@ tags:
   - audio-streaming
   - auracast
 date: 2025-07-02
-aliases:
-  - posts/auracast
 ---
 Auracast could be awesome.
 

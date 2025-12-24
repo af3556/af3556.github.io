@@ -2,8 +2,6 @@
 date: 2025-02-13
 tags:
   - shelly
-aliases:
-  - posts/shelly-scripting-part1
 ---
 
 [Shelly](https://www.shelly.com/) - nee Allterco - produce a variety of home automation devices. One notable feature is on-device scripting: devices host an embedded Javascript interpreter that opens up all kinds of useful functionality. This post is part one of two that go from 'first contact' with a Shelly through to having a script that provides bespoke control of a load. [[2 Shelly Scripting - Practical Example|Part 2]] puts this into practice with a real-world example.
