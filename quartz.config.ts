@@ -12,7 +12,7 @@ const config: QuartzConfig = {
     pageTitleSuffix: "",
     enableSPA: true,
     enablePopovers: true,
-    analytics: null,
+    analytics: { provider: 'goatcounter', websiteId: 'af3556' },
     locale: "en-GB",
     baseUrl: "af3556.github.io",
     ignorePatterns: ["private", "templates", ".obsidian"],
